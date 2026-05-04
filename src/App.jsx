@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { TareasColaborador, PanelAdmin } from './Tareas'
 import { auth, db } from './firebase'
 import {
   createUserWithEmailAndPassword,
@@ -244,30 +245,9 @@ function ScreenMarcaje({ colaborador, perfil }) {
   )
 }
 
-function ScreenTareas() {
-  const tareas = [
-    { id: 1, titulo: 'Limpiar equipos de cardio', completada: false, puntos: 20 },
-    { id: 2, titulo: 'Atención al cliente en recepción', completada: true, puntos: 30 },
-    { id: 3, titulo: 'Clase de spinning 7am', completada: false, puntos: 50 },
-  ]
-  return (
-    <div className="flex-1 overflow-y-auto px-4 py-6">
-      <h2 className="text-white font-bold text-xl mb-4">Mis Tareas de Hoy</h2>
-      <div className="space-y-3">
-        {tareas.map(t => (
-          <div key={t.id} className={`bg-zinc-900 border rounded-xl p-4 flex items-center gap-3 ${t.completada ? 'border-gray-600 opacity-60' : 'border-zinc-700'}`}>
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${t.completada ? 'bg-gray-400 border-gray-400' : 'border-gray-500'}`}>
-              {t.completada && <span className="text-black text-xs font-black">✓</span>}
-            </div>
-            <div className="flex-1">
-              <p className={`font-medium text-sm ${t.completada ? 'line-through text-gray-500' : 'text-white'}`}>{t.titulo}</p>
-              <p className="text-gray-500 text-xs">{t.puntos} puntos</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+function ScreenTareas({ colaborador, perfil, onPuntosActualizados, esAdmin, onAbrirAdmin, onCerrarAdmin }) {
+  if (esAdmin) return <PanelAdmin onCerrar={onCerrarAdmin} />
+  return <TareasColaborador colaborador={colaborador} perfil={perfil} onPuntosActualizados={onPuntosActualizados} />
 }
 
 function ScreenCalendario() {
@@ -347,6 +327,7 @@ export default function App() {
   const [perfil, setPerfil] = useState(null)
   const [tab, setTab] = useState('home')
   const [iniciando, setIniciando] = useState(true)
+  const [esAdmin, setEsAdmin] = useState(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -382,7 +363,14 @@ export default function App() {
     switch (tab) {
       case 'home': return <ScreenHome colaborador={colaborador} perfil={perfil} />
       case 'marcaje': return <ScreenMarcaje colaborador={colaborador} perfil={perfil} />
-      case 'tareas': return <ScreenTareas />
+      case 'tareas': return <ScreenTareas
+        colaborador={colaborador}
+        perfil={perfil}
+        onPuntosActualizados={(p) => setPerfil(prev => ({...prev, puntos: p}))}
+        esAdmin={esAdmin}
+        onAbrirAdmin={() => setEsAdmin(true)}
+        onCerrarAdmin={() => setEsAdmin(false)}
+      />
       case 'calendario': return <ScreenCalendario />
       case 'reconocimientos': return <ScreenReconocimientos />
       default: return <ScreenHome colaborador={colaborador} perfil={perfil} />
@@ -398,11 +386,18 @@ export default function App() {
           </div>
           <span className="text-white font-bold text-sm tracking-wider">EMPORIO FITNESS</span>
         </div>
-        <button
-          onClick={() => signOut(auth)}
-          className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
-          Salir
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setEsAdmin(!esAdmin); setTab('tareas') }}
+            className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-colors ${esAdmin ? 'bg-gray-400 text-black' : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600'}`}>
+            {esAdmin ? '⚙️ Admin' : '⚙️'}
+          </button>
+          <button
+            onClick={() => signOut(auth)}
+            className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
+            Salir
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { TareasColaborador, PanelAdmin } from './Tareas'
+import { EscanerQR, TabletQR } from './QRSystem'
 import { auth, db } from './firebase'
 import {
   createUserWithEmailAndPassword,
@@ -184,65 +185,9 @@ function ScreenHome({ colaborador, perfil, onMarcaje }) {
   )
 }
 
-function ScreenMarcaje({ colaborador, perfil }) {
-  const [estado, setEstado] = useState('')
-  const [cargando, setCargando] = useState(false)
-
-  const registrarMarcaje = async (tipo) => {
-    setCargando(true)
-    try {
-      await addDoc(collection(db, 'marcajes'), {
-        uid: colaborador.uid,
-        nombre: perfil?.nombre || colaborador.email,
-        tipo,
-        hora: serverTimestamp(),
-        fecha: new Date().toLocaleDateString('es-GT')
-      })
-      setEstado(tipo === 'entrada'
-        ? '✅ Entrada registrada correctamente'
-        : '✅ Salida registrada correctamente')
-    } catch (e) {
-      setEstado('❌ Error al registrar. Intenta de nuevo.')
-    }
-    setCargando(false)
-  }
-
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4">
-      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 w-full max-w-sm text-center">
-        <div className="text-6xl mb-4">⏱️</div>
-        <h2 className="text-white font-bold text-xl mb-2">Registro de Asistencia</h2>
-        <p className="text-gray-400 text-sm mb-6">
-          Registra tu entrada o salida del gimnasio
-        </p>
-
-        {estado && (
-          <div className="bg-zinc-800 rounded-xl px-4 py-3 mb-4 text-gray-300 text-sm">
-            {estado}
-          </div>
-        )}
-
-        <div className="space-y-3">
-          <button
-            onClick={() => registrarMarcaje('entrada')}
-            disabled={cargando}
-            className="w-full bg-gray-400 hover:bg-gray-300 text-black font-bold py-3 rounded-xl transition-colors disabled:opacity-50">
-            {cargando ? 'Registrando...' : '🟢 Registrar Entrada'}
-          </button>
-          <button
-            onClick={() => registrarMarcaje('salida')}
-            disabled={cargando}
-            className="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50">
-            {cargando ? 'Registrando...' : '🔴 Registrar Salida'}
-          </button>
-        </div>
-
-        <p className="text-gray-600 text-xs mt-4">
-          {new Date().toLocaleString('es-GT')}
-        </p>
-      </div>
-    </div>
-  )
+function ScreenMarcaje({ colaborador, perfil, modoTablet }) {
+  if (modoTablet) return <TabletQR />
+  return <EscanerQR colaborador={colaborador} perfil={perfil} />
 }
 
 function ScreenTareas({ colaborador, perfil, onPuntosActualizados, esAdmin, onAbrirAdmin, onCerrarAdmin }) {
@@ -328,6 +273,7 @@ export default function App() {
   const [tab, setTab] = useState('home')
   const [iniciando, setIniciando] = useState(true)
   const [esAdmin, setEsAdmin] = useState(false)
+  const [modoTablet, setModoTablet] = useState(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -362,7 +308,7 @@ export default function App() {
   const renderScreen = () => {
     switch (tab) {
       case 'home': return <ScreenHome colaborador={colaborador} perfil={perfil} />
-      case 'marcaje': return <ScreenMarcaje colaborador={colaborador} perfil={perfil} />
+      case 'marcaje': return <ScreenMarcaje colaborador={colaborador} perfil={perfil} modoTablet={modoTablet} />
       case 'tareas': return <ScreenTareas
         colaborador={colaborador}
         perfil={perfil}
@@ -387,6 +333,11 @@ export default function App() {
           <span className="text-white font-bold text-sm tracking-wider">EMPORIO FITNESS</span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setModoTablet(!modoTablet); setTab('marcaje') }}
+            className={`text-xs px-2 py-1.5 rounded-lg font-bold transition-colors ${modoTablet ? 'bg-blue-500 text-white' : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600'}`}>
+            📟
+          </button>
           <button
             onClick={() => { setEsAdmin(!esAdmin); setTab('tareas') }}
             className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-colors ${esAdmin ? 'bg-gray-400 text-black' : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600'}`}>
